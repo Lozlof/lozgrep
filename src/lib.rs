@@ -1,4 +1,5 @@
 pub mod parse_and_build_arguments {
+    use core::borrow;
     use std::env;
     use std::process;
     use std::collections::HashSet;
@@ -8,6 +9,7 @@ pub mod parse_and_build_arguments {
         let possible_options: [&str; 14] = ["--help", "-h", "--version", "-ver", "--verbose", "-v", "--query", "-q", "--path", "-p", "--simple-grep", "-sg", "--simple-find", "-sf"]; // These are all the valid options.
         verify_argument_length(&collected_arguments); // Checks if zero arguments are passed, checks if too many arguments are passed, error in either senario.
         let validated_options: Vec<String> = verify_options_are_valid(&collected_arguments, &possible_options); // Filters and collects all options (--, -) from the arguments. Compares the filtered options to possible_options to verify the given options. Creates errors if bad options are present. Calls on a function to check for exact duplicate options (-h -h), and creates an error if there are duplicate options. Calls on function to check for logically duplicate options (--help -h), and creates error if there are duplicates.
+        let validated_values = verify_values_are_valid(&collected_arguments, &validated_options);
     }
 
     fn verify_argument_length(borrow_collected_arguments: &Vec<String>) {
@@ -125,4 +127,63 @@ pub mod parse_and_build_arguments {
             process::exit(1);
         }
     }
+
+    fn verify_values_are_valid(borrow_collected_arguments: &Vec<String>, borrow_validated_options: &Vec<String>) { // Filters and collects everything else besides the options.
+        let filtered_values: Vec<String> = borrow_collected_arguments
+        .iter()
+        .filter(|value| !value.starts_with("--") && !value.starts_with("-"))// Will filter out all other passed arguments that are not options (--, -).
+        .cloned()
+        .collect();
+
+        let query_present: bool = borrow_validated_options.contains(&"--query".to_string()) || borrow_validated_options.contains(&"-q".to_string()); // query and path_present will == true if they contain query or path options. 
+        let path_present: bool = borrow_validated_options.contains(&"--path".to_string()) || borrow_validated_options.contains(&"-p".to_string());
+
+        if filtered_values.len() == 0 && query_present == true || filtered_values.len() == 0 && path_present == true { // Since query and path require values, it is an error if there are xero values and query or path is present.
+            if query_present == true && path_present == true { // Different error messages depending on the situation.
+                println!("Invalid syntax. The query (--query, -q) and path (--path, -p) options require a non-option value to follow it. Use \"--help\" or \"-h\" to see options and syntax.");
+    
+            } else if query_present == true {
+                println!("Invalid syntax. The query (--query, -q) option requires a non-option value to follow it. Use \"--help\" or \"-h\" to see options and syntax.");
+    
+            } else if path_present == true {
+                println!("Invalid syntax. The path (--path, -p) option requires a non-option value to follow it. Use \"--help\" or \"-h\" to see options and syntax.");
+            }
+        }
+
+        if filtered_values.len() == 1 || filtered_values.len() > 2 { // There should only be two non-option arguments, one for query, one for path.
+            if filtered_values.len() == 1 { // Different error messages depending on the situation.
+                let print_bad_arguments: String = filtered_values.join(" ");
+                println!("Invalid syntax. Too few values were passed: {}. Use \"--help\" or \"-h\" to see options and syntax.", print_bad_arguments);
+    
+            } else { // filtered_argument.len() > 2.
+                let print_bad_arguments: String = filtered_values.join(", ");
+                println!("Invalid syntax. Too many values were passed: {}. Use \"--help\" or \"-h\" to see options and syntax.", print_bad_arguments);
+            }
+        }
+
+        parse_path_and_query(&borrow_collected_arguments, &filtered_values);
+
+
+        /*if filtered_values[0].starts_with("`") || filtered_values[1].starts_with("`") {
+            check_for_escape_characters(&filtered_values);
+        }*/
+    }
+
+    fn parse_path_and_query(borrow_borrow_collected_arguments: &Vec<String>, borrow_filtered_values: &Vec<String>) {
+        let mut count: usize = 0;
+
+        while count < borrow_borrow_collected_arguments.len() {
+            if borrow_borrow_collected_arguments[count] == borrow_filtered_values[0] {
+
+            }
+            
+            if borrow_borrow_collected_arguments[count] == borrow_filtered_values [1] {
+
+            }
+        }
+    }
+
+    /*fn check_for_escape_characters(borrow_filtered_values: &Vec<String>) {
+
+    }*/
 }
