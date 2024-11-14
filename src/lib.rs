@@ -7,7 +7,7 @@ pub mod parse_and_build_arguments {
         let collected_arguments: Vec<String> = env::args().skip(1).collect(); // Will collect passed arguments and put them into a vector. Does not collect the first passed argument, because it is not needed.
         let possible_options: [&str; 14] = ["--help", "-h", "--version", "-ver", "--verbose", "-v", "--query", "-q", "--path", "-p", "--simple-grep", "-sg", "--simple-find", "-sf"]; // These are all the valid options.
         verify_argument_length(&collected_arguments); // Checks if zero arguments are passed, checks if too many arguments are passed, error in either senario.
-        verify_options_are_valid(&collected_arguments, &possible_options); // Filters and collects all options (--, -) from the arguments. Compares the filtered options to possible_options to verify the given options. Creates errors if bad options are present. Calls on a function to check for duplicate options, and creates an error if there are duplicate options.
+        let validated_options: Vec<String> = verify_options_are_valid(&collected_arguments, &possible_options); // Filters and collects all options (--, -) from the arguments. Compares the filtered options to possible_options to verify the given options. Creates errors if bad options are present. Calls on a function to check for exact duplicate options (-h -h), and creates an error if there are duplicate options. Calls on function to check for logically duplicate options (--help -h), and creates error if there are duplicates.
     }
 
     fn verify_argument_length(borrow_collected_arguments: &Vec<String>) {
@@ -22,7 +22,7 @@ pub mod parse_and_build_arguments {
         }
     }
 
-    fn verify_options_are_valid (borrow_collected_arguments: &Vec<String>, borrow_possible_options: &[&str; 14]) {
+    fn verify_options_are_valid (borrow_collected_arguments: &Vec<String>, borrow_possible_options: &[&str; 14]) -> Vec<String> {
         let filtered_options: Vec<String> = borrow_collected_arguments // Parses through all the collected arguments and pulls out any options (-- -).
         .iter() // creates an iterator.
         .filter(|option| option.starts_with("--") || option.starts_with("-")) // .filter(...) is used to retain only items that satisfy a given condition. |option| is a closure (anonymous function) parameter representing each item passed from the iterator. Checks if the String starts with -- or -.
@@ -48,12 +48,19 @@ pub mod parse_and_build_arguments {
             }
         }
 
-        if check_for_duplicate_options(&filtered_options) == true {
-            print!("There are repeated options");
+        if check_for_exact_duplicate_options(&filtered_options) == true { // Function will return true if there are eacxt duplicated options (-p, -p, or --help, --help), which is an error.
+            let print_filtered_options: String = filtered_options.join(", ");
+            
+            println!("Invalid syntax. Duplicated options were passed: {}. Use \"--help\" or \"-h\" to see options and syntax.", &print_filtered_options);
+            process::exit(1);
         }
+
+        check_for_logically_duplicate_options(&filtered_options); // If this function finds logically duplicate options (--help -h --path -p), error will be created and process will end.
+
+        return filtered_options; // If there is no issues with the passed options, then filtered_options will be returned to build_running_configuration.
     }
 
-    fn check_for_duplicate_options<T: Eq + std::hash::Hash>(borrow_filtered_options: &[T]) -> bool { // Generics (<T>): Allows the function to operate on slices of any data type. Eq Trait: Ensures that the elements can be compared for equality. Hash Trait: Allows the elements to be hashed, which is necessary for inserting them into a HashSet.
+    fn check_for_exact_duplicate_options<T: Eq + std::hash::Hash>(borrow_filtered_options: &[T]) -> bool { // Generics (<T>): Allows the function to operate on slices of any data type. Eq Trait: Ensures that the elements can be compared for equality. Hash Trait: Allows the elements to be hashed, which is necessary for inserting them into a HashSet.
         if borrow_filtered_options.len() != borrow_filtered_options // if borrow_filtered_options.len() != borrow_filtered_options.iter()..collect::<HashSet<_>>().len() {}.
         .iter() // Creates an iterator over references to the elements (&T).
         .collect::<HashSet<_>>()// Transforms the iterator into a collection, in this case, a HashSet. Using ::<HashSet<_>> explicitly tells Rust to collect into a HashSet, and the underscore _ lets the compiler infer the specific type.
@@ -62,6 +69,60 @@ pub mod parse_and_build_arguments {
             
         } else {
             return false; // There are not repeated options.
+        }
+    }
+
+    fn check_for_logically_duplicate_options(borrow_filtered_options: &Vec<String>) {
+        let double_tack: Vec<String> = borrow_filtered_options // Creates a vector of all the options that start with --.
+        .iter() 
+        .filter(|option| option.starts_with("--")) 
+        .cloned()
+        .collect();
+
+        let mut build_error_message = String::new(); // Creates a mutable string, text is appended to it if there is an error.
+
+        for option in double_tack { // ["--help", "-h", "--version", "-ver", "--verbose", "-v", "--query", "-q", "--path", "-p", "--simple-grep", "-sg", "--simple-find", "-sf"].
+            if option == "--help" { // If the double tacked option is present, it is an error if the single tacked option is present.
+                if borrow_filtered_options.contains(&"-h".to_string()) {
+                    build_error_message.push_str("--help -h ");
+                }
+
+            } else if option =="--version" {
+                if borrow_filtered_options.contains(&"-ver".to_string()) {
+                    build_error_message.push_str("--version -ver ");
+                }
+
+            } else if option =="--verbose" {
+                if borrow_filtered_options.contains(&"-v".to_string()) {
+                    build_error_message.push_str("--verbose -v ");
+                }
+
+            } else if option =="--query" {
+                if borrow_filtered_options.contains(&"-q".to_string()) {
+                    build_error_message.push_str("--query -q ");
+                }
+
+            } else if option =="--path" {
+                if borrow_filtered_options.contains(&"-p".to_string()) {
+                    build_error_message.push_str("--path -p ");
+                }
+
+            } else if option =="--simple-grep" {
+                if borrow_filtered_options.contains(&"-sg".to_string()) {
+                    build_error_message.push_str("--simple-grep -sg ");
+                }
+
+            } else if option =="--simple-find" {
+                if borrow_filtered_options.contains(&"-sf".to_string()) {
+                    build_error_message.push_str("--simple-find -sf ");
+                }
+            }
+        }
+
+        if !build_error_message.is_empty() { // If the build_error_message string is not empty, that means there are doubled options, and therefore is an error.
+            let error_message = format!("Invalid syntax. Duplicate options were passed: {}. Use \"--help\" or \"-h\" to see options and syntax.", build_error_message);
+            println!("{}", error_message);
+            process::exit(1);
         }
     }
 }
