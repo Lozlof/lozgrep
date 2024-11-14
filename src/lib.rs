@@ -8,10 +8,23 @@ pub mod parse_and_build_arguments {
     pub fn build_running_configuration() {
         let collected_arguments: Vec<String> = env::args().skip(1).collect(); // Will collect passed arguments and put them into a vector. Does not collect the first passed argument, because it is not needed.
         let possible_options: [&str; 14] = ["--help", "-h", "--version", "-ver", "--verbose", "-v", "--query", "-q", "--path", "-p", "--simple-grep", "-sg", "--simple-find", "-sf"]; // These are all the valid options.
+
         verify_argument_length(&collected_arguments); // Checks if zero arguments are passed, checks if too many arguments are passed, error in either senario.
+
         let validated_options: Vec<String> = verify_options_are_valid(&collected_arguments, &possible_options); // Filters and collects all options (--, -) from the arguments. Compares the filtered options to possible_options to verify the given options. Creates errors if bad options are present. Calls on a function to check for exact duplicate options (-h -h), and creates an error if there are duplicate options. Calls on function to check for logically duplicate options (--help -h), and creates error if there are duplicates.
         let validated_values = verify_values_are_valid(&collected_arguments, &validated_options); // Parses out the non-option arguments. Verifies that if there are zero non-option arguments, then query and path are not present. Creates errors if there is only one value or more than two values. 
+        
+        if validated_values.len() == 0 { // If validated_vales.len() == 0 and validated_values gets passed into parse_path_and_query, it will cause an error. 
+            let null_query: String = "null".to_string(); // Needed because check_if_the_given_options_work_together requires two Strings to be passed to it.
+            let null_path: String = "null".to_string();
+
+            check_if_the_given_options_work_together(&validated_options, &null_query, &null_path); // Will ignore null strings.
+        }
+
         let (valid_query, valid_path) = parse_path_and_query(&collected_arguments, &validated_values); // Creates an error if a non-option value is passed as the first argument. Creates errors if a non-option value is passed behind an option that is not path or query. Parses which value is a query and which value is a path. Validates path. Checks for escape character on the query.
+        
+        check_if_the_given_options_work_together(&validated_options, &valid_query, &valid_path);
+
         println!("Query: {}", valid_query);
         println!("Path: {}", valid_path);
         println!("Options: {:?}", validated_options);
@@ -257,5 +270,19 @@ pub mod parse_and_build_arguments {
                 }
             }
         } 
+    }
+
+    fn check_if_the_given_options_work_together(borrow_validated_options: &Vec<String>, borrow_valid_query: &String, borrow_valid_path: &String) { // ["--help", "-h", "--version", "-ver", "--verbose", "-v", "--query", "-q", "--path", "-p", "--simple-grep", "-sg", "--simple-find", "-sf"] all the options for reference.
+        if (borrow_validated_options.contains(&"--simple-grep".to_string()) || borrow_validated_options.contains(&"-sg".to_string())) && (borrow_validated_options.contains(&"--simple-find".to_string()) || borrow_validated_options.contains(&"-sf".to_string())) { // If simple-grep and simple-find are both passed. It is an error because thoes two options do not work together.
+            println!("Invalid syntax. The simple-grep (--simple-grep, -sg) and simple-find (--simple-find, -sf) options cannot be used together. Those processes can only be ran one at a time. Use \"--help\" or \"-h\" to see options and syntax.");
+            process::exit(1);
+        }
+
+        if (borrow_valid_query == "null" && borrow_valid_path == "null") && ((borrow_validated_options.contains(&"--simple-grep".to_string()) || borrow_validated_options.contains(&"-sg".to_string())) || (borrow_validated_options.contains(&"--simple-find".to_string()) || borrow_validated_options.contains(&"-sf".to_string()))) { // If the user does not pass a query and path, the simple-grep and simple-find processes cannot run.
+            println!("Invalid syntax. The simple-grep (--simple-grep, -sg) and simple-find (--simple-find, -sf) options cannot be used if a query (--query, -q) and path (--path, -p) are not passed. Use \"--help\" or \"-h\" to see options and syntax.");
+            process::exit(1);
+        }    
+
+        
     }
 }
