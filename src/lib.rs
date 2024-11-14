@@ -81,7 +81,7 @@ pub mod parse_and_build_arguments {
         .cloned()
         .collect();
 
-        let mut build_error_message = String::new(); // Creates a mutable string, text is appended to it if there is an error.
+        let mut build_error_message: String = String::new(); // Creates a mutable string, text is appended to it if there is an error.
 
         for option in double_tack { // ["--help", "-h", "--version", "-ver", "--verbose", "-v", "--query", "-q", "--path", "-p", "--simple-grep", "-sg", "--simple-find", "-sf"].
             if option == "--help" { // If the double tacked option is present, it is an error if the single tacked option is present.
@@ -171,16 +171,33 @@ pub mod parse_and_build_arguments {
 
     fn parse_path_and_query(borrow_borrow_collected_arguments: &Vec<String>, borrow_filtered_values: &Vec<String>) {
         let mut count: usize = 0;
+        let mut query: String = String::new();
+        let mut path: String = String::new();
 
         while count < borrow_borrow_collected_arguments.len() {
             if borrow_borrow_collected_arguments[count] == borrow_filtered_values[0] {
+                if borrow_borrow_collected_arguments[count -1] == "--query" || borrow_borrow_collected_arguments[count -1] == "-q" {
+                    query = borrow_borrow_collected_arguments[count].clone();
 
+                } else { // borrow_borrow_collected_arguments[count -1] == "--path" || borrow_borrow_collected_arguments[count -1] == "-p"
+                    path = borrow_borrow_collected_arguments[count].clone();
+                }
             }
             
             if borrow_borrow_collected_arguments[count] == borrow_filtered_values [1] {
+                if borrow_borrow_collected_arguments[count -1] == "--query" || borrow_borrow_collected_arguments[count -1] == "-q" {
+                    query = borrow_borrow_collected_arguments[count].clone();
 
+                } else { // borrow_borrow_collected_arguments[count -1] == "--path" || borrow_borrow_collected_arguments[count -1] == "-p"
+                    path = borrow_borrow_collected_arguments[count].clone();
+                }
             }
+
+            count += 1;
         }
+
+        println!("Query: {}", query);
+        println!("Path: {}", path);
     }
 
     /*fn check_for_escape_characters(borrow_filtered_values: &Vec<String>) {
