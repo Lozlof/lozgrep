@@ -1,15 +1,17 @@
 pub mod parse_and_build_arguments {
-    use core::borrow;
     use std::env;
     use std::process;
     use std::collections::HashSet;
+    use std::fs;
+    use std::io;
+    use std::path::Path;
 
     pub fn build_running_configuration() {
         let collected_arguments: Vec<String> = env::args().skip(1).collect(); // Will collect passed arguments and put them into a vector. Does not collect the first passed argument, because it is not needed.
         let possible_options: [&str; 14] = ["--help", "-h", "--version", "-ver", "--verbose", "-v", "--query", "-q", "--path", "-p", "--simple-grep", "-sg", "--simple-find", "-sf"]; // These are all the valid options.
         verify_argument_length(&collected_arguments); // Checks if zero arguments are passed, checks if too many arguments are passed, error in either senario.
         let validated_options: Vec<String> = verify_options_are_valid(&collected_arguments, &possible_options); // Filters and collects all options (--, -) from the arguments. Compares the filtered options to possible_options to verify the given options. Creates errors if bad options are present. Calls on a function to check for exact duplicate options (-h -h), and creates an error if there are duplicate options. Calls on function to check for logically duplicate options (--help -h), and creates error if there are duplicates.
-        let validated_values = verify_values_are_valid(&collected_arguments, &validated_options);
+        verify_values_are_valid(&collected_arguments, &validated_options); //
     }
 
     fn verify_argument_length(borrow_collected_arguments: &Vec<String>) {
@@ -127,7 +129,7 @@ pub mod parse_and_build_arguments {
             process::exit(1);
         }
     }
-
+    // Parses out the non-option arguments. Verifies that if there are zero non-option arguments, then query and path are not present. Creates errors if there is only one value or more than two values. Calls on a function that seperates the query and path, creates an error if the query or path is blank.
     fn verify_values_are_valid(borrow_collected_arguments: &Vec<String>, borrow_validated_options: &Vec<String>) { // Filters and collects everything else besides the options.
         let filtered_values: Vec<String> = borrow_collected_arguments
         .iter()
@@ -141,27 +143,32 @@ pub mod parse_and_build_arguments {
         if filtered_values.len() == 0 && query_present == true || filtered_values.len() == 0 && path_present == true { // Since query and path require values, it is an error if there are xero values and query or path is present.
             if query_present == true && path_present == true { // Different error messages depending on the situation.
                 println!("Invalid syntax. The query (--query, -q) and path (--path, -p) options require a non-option value to follow it. Use \"--help\" or \"-h\" to see options and syntax.");
+                process::exit(1);
     
             } else if query_present == true {
                 println!("Invalid syntax. The query (--query, -q) option requires a non-option value to follow it. Use \"--help\" or \"-h\" to see options and syntax.");
+                process::exit(1);
     
             } else if path_present == true {
                 println!("Invalid syntax. The path (--path, -p) option requires a non-option value to follow it. Use \"--help\" or \"-h\" to see options and syntax.");
+                process::exit(1);
             }
         }
 
         if filtered_values.len() == 1 || filtered_values.len() > 2 { // There should only be two non-option arguments, one for query, one for path.
             if filtered_values.len() == 1 { // Different error messages depending on the situation.
                 let print_bad_arguments: String = filtered_values.join(" ");
-                println!("Invalid syntax. Too few values were passed: {}. Use \"--help\" or \"-h\" to see options and syntax.", print_bad_arguments);
+                println!("Invalid syntax. Too few non-option values were passed: {}. Use \"--help\" or \"-h\" to see options and syntax.", print_bad_arguments);
+                process::exit(1);
     
             } else { // filtered_argument.len() > 2.
                 let print_bad_arguments: String = filtered_values.join(", ");
-                println!("Invalid syntax. Too many values were passed: {}. Use \"--help\" or \"-h\" to see options and syntax.", print_bad_arguments);
+                println!("Invalid syntax. Too many non-option values were passed: {}. Use \"--help\" or \"-h\" to see options and syntax.", print_bad_arguments);
+                process::exit(1);
             }
         }
 
-        parse_path_and_query(&borrow_collected_arguments, &filtered_values);
+        parse_path_and_query(&borrow_collected_arguments, &filtered_values); // Creates an error if a non-option value is passed as the first argument. Creates errors if a non-option value is passed behind an option that is not path or query. Parses which value is a query and which value is a path.
 
 
         /*if filtered_values[0].starts_with("`") || filtered_values[1].starts_with("`") {
@@ -171,16 +178,25 @@ pub mod parse_and_build_arguments {
 
     fn parse_path_and_query(borrow_borrow_collected_arguments: &Vec<String>, borrow_filtered_values: &Vec<String>) {
         let mut count: usize = 0;
-        let mut query: String = String::new();
+        let mut query: String = String::new(); // Mutable empth string.
         let mut path: String = String::new();
+        let mut error_occurred: usize = 0;
 
-        while count < borrow_borrow_collected_arguments.len() {
-            if borrow_borrow_collected_arguments[count] == borrow_filtered_values[0] {
-                if borrow_borrow_collected_arguments[count -1] == "--query" || borrow_borrow_collected_arguments[count -1] == "-q" {
-                    query = borrow_borrow_collected_arguments[count].clone();
+        if borrow_filtered_values.contains(&borrow_borrow_collected_arguments[0]) { // If a non-option value is the first argument passed, it is an error because that has no meaning. An option has to come first.
+            println!("Invalid syntax. An option has to be the first argument passed. Use \"--help\" or \"-h\" to see options and syntax.");
+            process::exit(1);
+        }
 
-                } else { // borrow_borrow_collected_arguments[count -1] == "--path" || borrow_borrow_collected_arguments[count -1] == "-p"
+        while count < borrow_borrow_collected_arguments.len() { // This loop is structured like this for a reason. Logic errors were occuring when done the other way.
+            if borrow_borrow_collected_arguments[count] == borrow_filtered_values[0] { // If the current value of collected_arguments equals a filtered_values. 
+                if borrow_borrow_collected_arguments[count -1] == "--query" || borrow_borrow_collected_arguments[count -1] == "-q" { // Look at the option that comes before the current value. If the option that comes before is query or path, you know that the current value is either the query or the path.
+                    query = borrow_borrow_collected_arguments[count].clone(); // If the found value meets the parameters, update the string.
+
+                } else if borrow_borrow_collected_arguments[count -1] == "--path" || borrow_borrow_collected_arguments[count -1] == "-p" {
                     path = borrow_borrow_collected_arguments[count].clone();
+
+                } else {
+                    error_occurred = error_occurred + 1; // If query or path cannot be assigned, increment the error counter.
                 }
             }
             
@@ -188,16 +204,47 @@ pub mod parse_and_build_arguments {
                 if borrow_borrow_collected_arguments[count -1] == "--query" || borrow_borrow_collected_arguments[count -1] == "-q" {
                     query = borrow_borrow_collected_arguments[count].clone();
 
-                } else { // borrow_borrow_collected_arguments[count -1] == "--path" || borrow_borrow_collected_arguments[count -1] == "-p"
+                } else if borrow_borrow_collected_arguments[count -1] == "--path" || borrow_borrow_collected_arguments[count -1] == "-p" {
                     path = borrow_borrow_collected_arguments[count].clone();
+
+                } else {
+                    error_occurred = error_occurred + 1;
                 }
             }
 
             count += 1;
         }
 
-        println!("Query: {}", query);
-        println!("Path: {}", path);
+        if error_occurred != 0 {
+            if query.is_empty() && path.is_empty() {
+                println!("Invalid syntax. The query option (--query, -q) and path option (--path, -p) are not followed by a non-option value. Use \"--help\" or \"-h\" to see options and syntax.");
+                process::exit(1);
+
+            } else if query.is_empty() {
+                println!("Invalid syntax. The query option (--query, -q) is not followed by a non-option value. Use \"--help\" or \"-h\" to see options and syntax.");
+                process::exit(1);
+
+            } else { // path.is_empty.
+                println!("Invalid syntax. The path option (--path, -p) is not followed by a non-option value. Use \"--help\" or \"-h\" to see options and syntax.");
+                process::exit(1);
+            }
+        }
+
+        validate_path(&path);
+    }
+
+    fn validate_path(borrow_path: &String) {
+        match fs::metadata(path) {
+        
+        } 
+        
+        
+        
+        /*let check_path: bool = Path::new(borrow_path).exists(); // Checks if the path is valid and returns a boolean value.
+        
+        if check_path == false { // TODO: Check and see what happens when you give a file path that the current user does not have access to.
+            println!("Error Path");
+        }*/
     }
 
     /*fn check_for_escape_characters(borrow_filtered_values: &Vec<String>) {
