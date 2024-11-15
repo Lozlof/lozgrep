@@ -335,5 +335,80 @@ pub mod parse_and_build_arguments {
             return Options {help, version, verbose, query, path, simple_grep, simple_find, query_item, path_item}
         }
     }
+}
 
+pub mod print_to_terminal { // All print to terminal functions go here.
+    pub fn print_version() {
+        println!("lozgrep version 0.0.2");
+    }
+
+    pub fn print_help() { // TODO: Make more descriptive.
+        println!("Options:");
+        println!("--help          -h       Prints the help menu.");
+        println!("--version       -ver     Prints the current version.");
+        println!("--verbose       -v       Prints output statements while the process is running.");
+        println!("--query         -q       The term you are searching for follows this option.");
+        println!("--path          -p       The path you are searching follows this option.");
+        println!("--simple-grep   -sg      Searches the contents of a file.");
+        println!("--simple-find   -sf      Searches for a file or directory name.");
+        println!("");
+        println!("Syntax rules:");
+        println!("The options can come in any order.");
+        println!("The long option (--) or short option (-) can be used interchangeably.");
+        println!("");
+        println!("Examples:");
+        println!("lozgrep -sg -p /home/user/file -q wordiamlookingfor");
+        println!("lozgrep --help -ver --query filename --simple-find -p /root");
+        println!("");
+        println!("Escape character rules:");
+        println!("The escape character is: /");
+        println!("The escape character can only be used on the value you want to query.");
+        println!("Escape character examples:");
+        println!("If you need to query for phrase that happens to also be an option");
+        println!("lozgrep -sg -q /--help -p /home/user/file");
+        println!("The escape character is needed in this example because without it lozgrep will read --help as an option and not an item to look for.");
+        println!("Therefore if you need to query for / you need to escape it, otherwise it will be stripped and the query will be empty.");
+        println!("lozgrep -sg -q // -p /home/user/file");
+    }
+
+    /*pub fn simple_grep_print(found_lines: Vec<&str>) {
+    
+        for item in found_lines {
+            println!("{}", item);
+        }
+    }*/
+}
+
+pub mod execute_main_operations {
+    use std::io;
+    use std::fs;
+    use std::process;
+    //use crate::print_to_terminal::simple_grep_print;
+
+    pub fn simple_grep(borrow_query_item: &String, borrow_path_item: &String) {
+        let contents_result: Result<String, io::Error> = fs::read_to_string(borrow_path_item); // fs::read_to_string takes the file_path, opens that file, and returns a value of type std::io::Result<String> that contains the file’s contents.
+
+        let contents:String = match contents_result { // Begins a match expression to handle the two possible variants of the contents_result (Ok or Err). Declares contents as a String to store the file contents if reading is successful.
+            Ok(file) => file,
+            Err(error_one) => { 
+            println!("Error. Problem reading the file contents of the given path: {}", error_one);
+            process::exit(1); 
+            }
+        };
+    }
+
+    /*pub fn simple_grep<'a>(borrow_query_item: &String, borrow_path_item: &'a String) -> bool {
+        let mut search_results: Vec<&str> = Vec::new();
+        
+        for line in borrow_path_item.lines() { 
+            if line.contains(borrow_query_item) { 
+                search_results.push(line);
+            }
+        }
+        
+        println!("{:?}", search_results);
+        simple_grep_print(search_results);
+
+        return true;
+    }*/
 }
