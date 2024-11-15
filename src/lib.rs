@@ -370,45 +370,42 @@ pub mod print_to_terminal { // All print to terminal functions go here.
         println!("Therefore if you need to query for / you need to escape it, otherwise it will be stripped and the query will be empty.");
         println!("lozgrep -sg -q // -p /home/user/file");
     }
-
-    /*pub fn simple_grep_print(found_lines: Vec<&str>) {
-    
-        for item in found_lines {
-            println!("{}", item);
-        }
-    }*/
 }
 
 pub mod execute_main_operations {
     use std::io;
     use std::fs;
     use std::process;
-    //use crate::print_to_terminal::simple_grep_print;
 
     pub fn simple_grep(borrow_query_item: &String, borrow_path_item: &String) {
         let contents_result: Result<String, io::Error> = fs::read_to_string(borrow_path_item); // fs::read_to_string takes the file_path, opens that file, and returns a value of type std::io::Result<String> that contains the file’s contents.
 
-        let contents:String = match contents_result { // Begins a match expression to handle the two possible variants of the contents_result (Ok or Err). Declares contents as a String to store the file contents if reading is successful.
-            Ok(file) => file,
-            Err(error_one) => { 
+        let file_contents:String = match contents_result { // Begins a match expression to handle the two possible variants of the contents_result (Ok or Err). Declares contents as a String to store the file contents if reading is successful.
+            Ok(file) => file, // If no error, the contents of the file are passed into file_contents.
+            Err(error_one) => { // If error, print error message and exit.
             println!("Error. Problem reading the file contents of the given path: {}", error_one);
             process::exit(1); 
             }
         };
-    }
 
-    /*pub fn simple_grep<'a>(borrow_query_item: &String, borrow_path_item: &'a String) -> bool {
-        let mut search_results: Vec<&str> = Vec::new();
-        
-        for line in borrow_path_item.lines() { 
-            if line.contains(borrow_query_item) { 
-                search_results.push(line);
+        let mut results_that_match_query: Vec<&str> = Vec::new(); // Mutable vector of &str to hold the found lines.
+
+        for line in file_contents.lines() { // For every line in file_contents.
+            if line.contains(borrow_query_item) {  // If query_item is in the line.
+                results_that_match_query.push(line); // Push that line into the vector.
             }
         }
-        
-        println!("{:?}", search_results);
-        simple_grep_print(search_results);
 
-        return true;
-    }*/
+        if results_that_match_query.len() == 0 { // If results_that_match_query is empty. Print message and exit.
+            println!("No matches found.");
+            process::exit(1);
+
+        } else { // If results_that_match_query is not empty. Print the contents and exit.
+            for item in results_that_match_query {
+                println!("{}", item);
+
+                process::exit(1);
+            }
+        }
+    }
 }
