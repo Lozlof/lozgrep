@@ -4,8 +4,9 @@ pub mod parse_and_build_arguments {
     use std::collections::HashSet;
     use std::fs;
     use std::io;
+    use std::path::Path;
 
-    pub fn build_running_configuration() {
+    pub fn build_running_configuration() -> Options {
         let collected_arguments: Vec<String> = env::args().skip(1).collect(); // Will collect passed arguments and put them into a vector. Does not collect the first passed argument, because it is not needed.
         let possible_options: [&str; 14] = ["--help", "-h", "--version", "-ver", "--verbose", "-v", "--query", "-q", "--path", "-p", "--simple-grep", "-sg", "--simple-find", "-sf"]; // These are all the valid options.
 
@@ -19,15 +20,20 @@ pub mod parse_and_build_arguments {
             let null_path: String = "null".to_string();
 
             check_if_the_given_options_work_together(&validated_options, &null_query, &null_path); // Will ignore null strings.
-        }
 
-        let (valid_query, valid_path) = parse_path_and_query(&collected_arguments, &validated_values); // Creates an error if a non-option value is passed as the first argument. Creates errors if a non-option value is passed behind an option that is not path or query. Parses which value is a query and which value is a path. Validates path. Checks for escape character on the query.
+            let running_options: Options = Options::build_options(validated_options, null_query, null_path);
+
+            return running_options;
+
+        } else { // validated_values.len() != 0
+            let (valid_query, valid_path) = parse_path_and_query(&collected_arguments, &validated_values); // Creates an error if a non-option value is passed as the first argument. Creates errors if a non-option value is passed behind an option that is not path or query. Parses which value is a query and which value is a path. Validates path. Checks for escape character on the query.
         
-        check_if_the_given_options_work_together(&validated_options, &valid_query, &valid_path);
+            check_if_the_given_options_work_together(&validated_options, &valid_query, &valid_path); // Checks if the passed options work together. May have to add more logic here, if errors appear.
+            
+            let running_options: Options = Options::build_options(validated_options, valid_query, valid_path);
 
-        println!("Query: {}", valid_query);
-        println!("Path: {}", valid_path);
-        println!("Options: {:?}", validated_options);
+            return running_options;
+        }
     }
 
     fn verify_argument_length(borrow_collected_arguments: &Vec<String>) {
@@ -283,6 +289,51 @@ pub mod parse_and_build_arguments {
             process::exit(1);
         }    
 
-        
+        if borrow_validated_options.contains(&"--simple-grep".to_string()) || borrow_validated_options.contains(&"-sg".to_string()) { // If simple-grep is passed, the path must be a file.
+            let check_path: &Path = Path::new(borrow_valid_path);
+
+            if check_path.is_dir() { // If path is a directory, error.
+                println!("Invalid syntax. When using simple-grep (--simple-grep, -sg) the path specified needs to be a file. simple-grep searches the contents of files. Use \"--help\" or \"-h\" to see options and syntax.");
+                process::exit(1);
+            }
+        } 
+
+        if borrow_validated_options.contains(&"--simple-find".to_string()) || borrow_validated_options.contains(&"-sf".to_string()) {
+            let check_path: &Path = Path::new(borrow_valid_path);
+
+            if check_path.is_file() {
+                println!("Invalid syntax. When using simple-find (--simple-find, -sf) the path specified needs to be a directory. simple-find searches a directory for a file. Use \"--help\" or \"-h\" to see options and syntax."); 
+                process::exit(1);
+            } 
+        }
     }
+
+    pub struct Options {
+        pub help: bool,
+        pub version: bool,
+        pub verbose: bool,
+        pub query: bool,
+        pub path: bool,
+        pub simple_grep: bool,
+        pub simple_find: bool,
+        pub query_item: String,
+        pub path_item: String,
+    }
+
+    impl Options { // ["--help", "-h", "--version", "-ver", "--verbose", "-v", "--query", "-q", "--path", "-p", "--simple-grep", "-sg", "--simple-find", "-sf"] all the options for reference.
+        fn build_options(build_options: Vec<String>, build_query: String, build_path: String) -> Options { // Assign everything.
+            let help: bool = if build_options.contains(&"--help".to_string()) || build_options.contains(&"-h".to_string()) { true } else { false };
+            let version: bool = if build_options.contains(&"--version".to_string()) || build_options.contains(&"-ver".to_string()) { true } else { false };
+            let verbose: bool = if build_options.contains(&"--verbose".to_string()) || build_options.contains(&"-v".to_string()) { true } else { false };
+            let query: bool = if build_options.contains(&"--query".to_string()) || build_options.contains(&"-q".to_string()) { true } else { false };
+            let path: bool = if build_options.contains(&"--path".to_string()) || build_options.contains(&"-p".to_string()) { true } else { false };
+            let simple_grep: bool = if build_options.contains(&"--simple-grep".to_string()) || build_options.contains(&"-sg".to_string()) { true } else { false };
+            let simple_find: bool = if build_options.contains(&"--simple-find".to_string()) || build_options.contains(&"-sf".to_string()) { true } else { false };
+            let query_item: String = build_query;
+            let path_item:String = build_path;
+
+            return Options {help, version, verbose, query, path, simple_grep, simple_find, query_item, path_item}
+        }
+    }
+
 }
