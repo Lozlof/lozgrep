@@ -308,6 +308,7 @@ pub mod parse_and_build_arguments {
         }
     }
 
+    #[derive(Debug)] // Instructs the compiler to automatically generate an implementation of the Debug trait for your struct. Has to do this in order for this line in main to work:  if passed_options.verbose == true { println!("Collected {:?}", &passed_options) }.
     pub struct Options {
         pub help: bool,
         pub version: bool,
@@ -401,11 +402,9 @@ pub mod execute_main_operations {
             process::exit(1);
 
         } else { // If results_that_match_query is not empty. Print the contents and exit.
-            for item in results_that_match_query {
-                println!("{}", item);
+            for item in results_that_match_query { println!("{}", item); }
 
-                process::exit(1);
-            }
+            process::exit(1);
         }
     }
 }
