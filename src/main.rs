@@ -11,16 +11,9 @@ fn main() { // As long as the options all pass through build_running_configurati
     if passed_options.help == true { print_help(&passed_options.verbose) } // If help is true, will call on print_help to print the version. Verbose is also passed so print_help can print the verbose output if true.
 
     if passed_options.simple_grep == true { 
-        simple_grep(&passed_options.query_item, &passed_options.path_item);
+        simple_grep(&passed_options.query_item, &passed_options.path_item, &passed_options.verbose);
     }
 
+    if passed_options.verbose == true { println!("VERBOSE: End of process, now exiting"); }
     std::process::exit(1);
-    
-    
-    /*if passed_options.verbose {println!("Verbose: true")};
-    if passed_options.query {println!("Query: true")};
-    if passed_options.path {println!("Path: true")};
-    
-    if passed_options.simple_find {println!("Simple-find: true")};*/
-
 }

@@ -382,8 +382,9 @@ pub mod execute_main_operations {
     use std::fs;
     use std::process;
 
-    pub fn simple_grep(borrow_query_item: &String, borrow_path_item: &String) {
+    pub fn simple_grep(borrow_query_item: &String, borrow_path_item: &String, borrow_passed_options_verbose: &bool) {
         let contents_result: Result<String, io::Error> = fs::read_to_string(borrow_path_item); // fs::read_to_string takes the file_path, opens that file, and returns a value of type std::io::Result<String> that contains the file’s contents.
+        if borrow_passed_options_verbose == &true { println!("VERBOSE: Attempt to read the contents of {} into a string", borrow_path_item); }
 
         let file_contents:String = match contents_result { // Begins a match expression to handle the two possible variants of the contents_result (Ok or Err). Declares contents as a String to store the file contents if reading is successful.
             Ok(file) => file, // If no error, the contents of the file are passed into file_contents.
@@ -392,22 +393,29 @@ pub mod execute_main_operations {
             process::exit(1); 
             }
         };
+        if borrow_passed_options_verbose == &true { println!("VERBOSE: Successfully read the contents of {} into a string", borrow_path_item); }
 
         let mut results_that_match_query: Vec<&str> = Vec::new(); // Mutable vector of &str to hold the found lines.
 
+        if borrow_passed_options_verbose == &true { println!("VERBOSE: Attempt to check if {} contains {}", borrow_path_item, borrow_query_item); }
         for line in file_contents.lines() { // For every line in file_contents.
             if line.contains(borrow_query_item) {  // If query_item is in the line.
                 results_that_match_query.push(line); // Push that line into the vector.
+                if borrow_passed_options_verbose == &true { println!("VERBOSE: Found a match"); }
             }
         }
 
         if results_that_match_query.len() == 0 { // If results_that_match_query is empty. Print message and exit.
             println!("No matches found.");
+
+            if borrow_passed_options_verbose == &true { println!("VERBOSE: End of process, now exiting"); }
             process::exit(1);
 
         } else { // If results_that_match_query is not empty. Print the contents and exit.
+            if borrow_passed_options_verbose == &true { println!("VERBOSE: Will now print the matches"); }
             for item in results_that_match_query { println!("{}", item); }
 
+            if borrow_passed_options_verbose == &true { println!("VERBOSE: End of process, now exiting"); }
             process::exit(1);
         }
     }
