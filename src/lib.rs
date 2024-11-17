@@ -425,6 +425,8 @@ pub mod execute_main_operations {
     pub fn simple_find(borrow_query_item: &String, borrow_path_item: &String, borrow_passed_options_verbose: &bool) {
         use walkdir::WalkDir; //  Cross platform Rust library for efficiently walking a directory recursively.
 
+        let mut nothing_found: usize = 0;
+
         for path_result in WalkDir::new(borrow_path_item) {
             match path_result { // WalkDir::new(borrow_path_item) return a result.
                 Ok(path) => { // If the process is able to sucessfully access the path.
@@ -432,6 +434,7 @@ pub mod execute_main_operations {
 
                     if path_compare.contains(borrow_query_item) { // Check if the query_item is contained within the path. 
                         println!("{}", path_compare); // Print the path that matched.
+                        nothing_found = nothing_found + 1;
                     }
 
                 } Err(error_one) => { // TODO: Create an option that will repress "permission denied" errors.
@@ -447,5 +450,9 @@ pub mod execute_main_operations {
                 }
             }
         }
+
+        if nothing_found == 0 {println!("No matches found.");} // If matches are found, nothing_found will not equal zero.
+
+        process::exit(1);
     }
 }
