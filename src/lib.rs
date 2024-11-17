@@ -378,10 +378,8 @@ pub mod print_to_terminal { // All print to terminal functions go here.
 }
 
 pub mod execute_main_operations {
-    use std::fmt::format;
     use std::io;
     use std::fs;
-    use std::path;
     use std::process;
 
     pub fn simple_grep(borrow_query_item: &String, borrow_path_item: &String, borrow_passed_options_verbose: &bool) {
