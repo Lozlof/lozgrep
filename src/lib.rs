@@ -378,8 +378,10 @@ pub mod print_to_terminal { // All print to terminal functions go here.
 }
 
 pub mod execute_main_operations {
+    use std::fmt::format;
     use std::io;
     use std::fs;
+    use std::path;
     use std::process;
 
     pub fn simple_grep(borrow_query_item: &String, borrow_path_item: &String, borrow_passed_options_verbose: &bool) {
@@ -417,6 +419,33 @@ pub mod execute_main_operations {
 
             if borrow_passed_options_verbose == &true { println!("VERBOSE: End of process, now exiting"); }
             process::exit(1);
+        }
+    }
+
+    pub fn simple_find(borrow_query_item: &String, borrow_path_item: &String, borrow_passed_options_verbose: &bool) {
+        use walkdir::WalkDir; //  Cross platform Rust library for efficiently walking a directory recursively.
+
+        for path_result in WalkDir::new(borrow_path_item) {
+            match path_result { // WalkDir::new(borrow_path_item) return a result.
+                Ok(path) => { // If the process is able to sucessfully access the path.
+                    let path_compare = format!("{}", path.path().display()); // Format the path into a string.
+
+                    if path_compare.contains(borrow_query_item) { // Check if the query_item is contained within the path. 
+                        println!("{}", path_compare); // Print the path that matched.
+                    }
+
+                } Err(error_one) => { // TODO: Create an option that will repress "permission denied" errors.
+                    if let Some(inner) = error_one.io_error() { // This checks if err.io_error() has a detailed I/O error (Some(inner)), which can be further analyzed.
+                        if inner.kind() == std::io::ErrorKind::PermissionDenied { // If it finds an I/O error (Some(inner)), it inspects the error's kind() (like PermissionDenied).
+                            println!("Permission denied: {}", error_one.path().map(|p| p.display().to_string()).unwrap_or_else(|| "unknown path".to_string())); // map() is a method available on Option. It applies the given closure (the function inside map) to the value inside the Some variant and returns a new Option with the transformed value. If path() returns Some(p), the closure |p| p.display().to_string() converts the Path into a string using the display() method. The result is Some(String). If path() returns None, map() does nothing and the result remains None. .unwrap_or_else(|| "unknown path".to_string()). This method is called on the result of map(), which is an Option<String>. If the Option is Some(String), it extracts and returns the string. If the Option is None, it calls the closure provided to unwrap_or_else and uses its return value. Here, the closure returns the string "unknown path". 
+                        } else {
+                            println!("Error: {}", error_one);
+                        }
+                    } else { // If it's None (i.e., no I/O error is associated with err), it skips this block and prints a generic error message.
+                        println!("Error: {}", error_one);
+                    }
+                }
+            }
         }
     }
 }
