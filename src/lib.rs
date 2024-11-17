@@ -356,6 +356,7 @@ pub mod print_to_terminal { // All print to terminal functions go here.
         println!("--simple-find   -sf      Searches for a file or directory name.");
         println!("");
         println!("Syntax rules:");
+        println!("There is no default mode, the options have to be sprecified.");
         println!("The options can come in any order.");
         println!("The long option (--) or short option (-) can be used interchangeably.");
         println!("");
