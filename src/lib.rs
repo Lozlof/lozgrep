@@ -340,7 +340,7 @@ pub mod parse_and_build_arguments {
 
 pub mod print_to_terminal { // All print to terminal functions go here.
     pub fn print_version(borrow_passed_options_verbose: &bool) {
-        println!("lozgrep version 0.0.2");
+        println!("lozgrep version 1.0.0");
         
         if borrow_passed_options_verbose == &true { println!("VERBOSE: Printed version"); } 
     }
