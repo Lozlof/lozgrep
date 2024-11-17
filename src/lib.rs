@@ -433,6 +433,7 @@ pub mod execute_main_operations {
                     let path_compare = format!("{}", path.path().display()); // Format the path into a string.
 
                     if path_compare.contains(borrow_query_item) { // Check if the query_item is contained within the path. 
+                        if borrow_passed_options_verbose == &true { println!("VERBOSE: Found a match"); }
                         println!("{}", path_compare); // Print the path that matched.
                         nothing_found = nothing_found + 1;
                     }
@@ -453,6 +454,7 @@ pub mod execute_main_operations {
 
         if nothing_found == 0 {println!("No matches found.");} // If matches are found, nothing_found will not equal zero.
 
+        if borrow_passed_options_verbose == &true { println!("VERBOSE: End of process, now exiting"); }
         process::exit(1);
     }
 }
