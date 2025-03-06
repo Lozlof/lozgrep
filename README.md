@@ -26,4 +26,4 @@ lozgrep -sg -q /--help -p /home/user/file
 The escape character is needed in this example because without it lozgrep will read --help as an option and not an item to look for.         
 Therefore if you need to query for / you need to escape it, otherwise it will be stripped and the query will be empty.          
 lozgrep -sg -q // -p /home/user/file     
-## Contact: lozlofcyber@gmail.com    
+## Contact: contact@gistyr.dev    
